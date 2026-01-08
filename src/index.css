@@ -1,41 +1,39 @@
-/* === PALETA REFINADA === */
+/* === PALETA REFINADA (TEMA CLARO) === */
 :root {
   /* FUNDOS */
-  --bg-body: #0F4743; /* fundo principal profundo */
-  --bg-surface: #087063; /* cards, inputs */
-  --bg-surface-elevated: #3C5845; /* hover / elementos elevados */
+  --bg-body: #FFFFFF; /* fundo principal claro */
+  --bg-surface: #F5F7F7; /* cards, inputs */
+  --bg-surface-elevated: #E7EBEB; /* hover / elevado */
 
-  /* PRINCIPAL / ACCENT */
-  --primary: #009999; /* botões, títulos, links */
+  /* CORES PRINCIPAIS */
+  --primary: #009999; /* botões / ações */
+  --primary-hover: #08706E;
   --primary-soft: rgba(0, 153, 153, 0.15);
-  --primary-hover: #0F4743; /* hover em botões ou destaque */
 
-  /* ALERTAS / SECUNDÁRIOS */
-  --danger: #A38D5E; /* alertas suaves */
+  /* ALERTAS */
+  --danger: #A38D5E;
   --danger-hover: #686847;
 
-  /* BORDAS / ELEMENTOS SECUNDÁRIOS */
-  --border-soft: #444444;
+  /* BORDAS */
+  --border-soft: #D0D2D4;
+  --border-strong: #888888;
 
   /* TEXTOS */
-  --text-main-light: #FFFFFF; /* textos claros sobre fundos escuros */
-  --text-main-dark: #111111;  /* textos escuros sobre fundos claros */
-  --text-muted-light: #E5E7EB; /* secundários sobre fundos escuros */
-  --text-muted-dark: #444444;  /* secundários sobre fundos claros */
+  --text-main: #222222;
+  --text-muted: #555555;
 }
 
-/* === BASE === */
+/* === BASE GLOBAL === */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
-  background: radial-gradient(circle at top, #0B1120 0%, var(--bg-body) 70%);
-  color: var(--text-main-light);
+  background: var(--bg-body);
+  color: var(--text-main);
 }
 
 .app-container {
@@ -59,11 +57,8 @@ body {
 
 .gradient-title {
   font-size: 1.9rem;
-  background: linear-gradient(90deg, var(--primary), var(--bg-surface-elevated));
-  color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .app-header {
@@ -71,30 +66,24 @@ body {
 }
 
 .app-header p {
-  color: var(--text-muted-light);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  color: var(--text-muted);
 }
 
 /* === CARDS === */
 .card {
-  background: linear-gradient(
-      135deg,
-      var(--primary-soft),
-      rgba(60, 88, 69, 0.05)
-    ),
-    var(--bg-surface);
+  background: var(--bg-surface);
   border-radius: 0.9rem;
   padding: 1.5rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border-soft);
-  backdrop-filter: blur(8px);
-  color: var(--text-main-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  color: var(--text-main);
 }
 
 .card h2 {
   margin-bottom: 1rem;
-  font-size: 1.25rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 /* === FORM === */
@@ -112,8 +101,7 @@ body {
 
 .form-row label {
   font-size: 0.9rem;
-  color: var(--text-muted-light);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  color: var(--text-muted);
 }
 
 .form-row input,
@@ -121,9 +109,9 @@ body {
 .form-row textarea {
   padding: 0.6rem 0.75rem;
   border-radius: 0.5rem;
+  background: #FFFFFF;
   border: 1px solid var(--border-soft);
-  background: var(--bg-surface);
-  color: var(--text-main-light);
+  color: var(--text-main);
 }
 
 .form-row textarea {
@@ -136,7 +124,7 @@ body {
 .form-row textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 10px var(--primary-soft);
+  box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
 .form-grid {
@@ -160,25 +148,22 @@ button {
   margin-top: 0.5rem;
   padding: 0.7rem 1rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--bg-surface-elevated));
-  color: var(--text-main-light);
+  background: var(--primary);
+  color: #FFFFFF;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  transition: background 0.15s ease;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 8px 20px var(--primary-soft);
-  transform: translateY(-2px);
+  background: var(--primary-hover);
 }
 
 .btn-secondary {
   padding: 0.45rem 0.8rem;
   border-radius: 0.5rem;
   background: var(--bg-surface-elevated);
-  color: var(--text-main-light);
+  border: 1px solid var(--border-soft);
+  color: var(--text-main);
 }
 
 .btn-secondary:hover {
@@ -189,7 +174,7 @@ button {
   padding: 0.45rem 0.8rem;
   border-radius: 0.5rem;
   background: var(--danger);
-  color: var(--text-main-dark); /* textos escuros para alertas claros */
+  color: #FFFFFF;
 }
 
 .btn-danger:hover {
@@ -212,23 +197,23 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  color: var(--text-main-light);
+  color: var(--text-main);
 }
 
 .task-item.concluida h3 {
   text-decoration: line-through;
-  color: var(--text-muted-light);
+  color: var(--text-muted);
 }
 
 .task-main h3 {
   font-size: 1rem;
   margin-bottom: 0.2rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  font-weight: 600;
 }
 
 .task-desc {
   font-size: 0.9rem;
-  color: var(--text-muted-light);
+  color: var(--text-muted);
 }
 
 .pill {
@@ -236,24 +221,23 @@ button {
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   background: var(--bg-surface-elevated);
-  color: var(--text-main-light);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  color: var(--text-main);
 }
 
 /* PRIORIDADES */
 .priority-baixa {
-  background: rgba(0, 153, 153, 0.18);
-  color: var(--text-main-light);
+  background: var(--primary-soft);
+  color: var(--primary-hover);
 }
 
 .priority-media {
   background: rgba(163, 141, 94, 0.18);
-  color: var(--text-main-dark); /* melhor contraste */
+  color: var(--danger-hover);
 }
 
 .priority-alta {
-  background: rgba(163, 141, 94, 0.25);
-  color: var(--text-main-dark);
+  background: rgba(163, 141, 94, 0.28);
+  color: var(--danger-hover);
 }
 
 /* === DASHBOARD === */
@@ -276,22 +260,21 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  color: var(--text-main-light);
+  color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
 .dashboard-card .dash-label {
   font-size: 0.8rem;
-  color: var(--text-muted-light);
+  color: var(--text-muted);
 }
 
 .dashboard-card .dash-value {
   font-size: 1.3rem;
   font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
 
 .dashboard-card.dash-warning {
   border-color: var(--danger-hover);
-  background: radial-gradient(circle at top, var(--danger), transparent),
-    var(--bg-surface);
+  background: rgba(163, 141, 94, 0.08);
 }
