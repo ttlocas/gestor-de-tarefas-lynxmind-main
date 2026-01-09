@@ -1,14 +1,14 @@
 /* === PALETA REFINADA (TEMA CLARO) === */
 :root {
   /* FUNDOS */
-  --bg-body: #FFFFFF; /* fundo principal claro */
-  --bg-surface: #F5F7F7; /* cards, inputs */
-  --bg-surface-elevated: #E7EBEB; /* hover / elevado */
+  --bg-body: #FFFFFF;
+  --bg-surface: #F5F7F7;
+  --bg-surface-elevated: #E7EBEB;
 
   /* CORES PRINCIPAIS */
-  --primary: #009999; /* botões / ações */
+  --primary: #009999;
   --primary-hover: #08706E;
-  --primary-soft: rgba(0, 153, 153, 0.15);
+  --primary-soft: rgba(0,153,153,0.15);
 
   /* ALERTAS */
   --danger: #A38D5E;
@@ -83,7 +83,6 @@ body {
   margin-bottom: 1rem;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text-main);
 }
 
 /* === FORM === */
@@ -104,8 +103,8 @@ body {
   color: var(--text-muted);
 }
 
+/* === INPUTS & TEXTAREAS === */
 .form-row input,
-.form-row select,
 .form-row textarea {
   padding: 0.6rem 0.75rem;
   border-radius: 0.5rem;
@@ -119,14 +118,59 @@ body {
   resize: vertical;
 }
 
-.form-row input:focus,
-.form-row select:focus,
-.form-row textarea:focus {
+input:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
+/* === SELECT BOXS UNIFORMIZADAS (AGORA MAIS ARREDONDADAS) === */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper select {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-soft);
+  padding: 0.6rem 2rem 0.6rem 0.75rem;
+  border-radius: 1rem; /* <-- MAIS ARREDONDADO */
+  color: var(--text-main);
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* seta unificada */
+.select-wrapper::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg fill='%23555555' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+select:hover {
+  border-color: var(--primary);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
+/* GRID */
 .form-grid {
   display: grid;
   gap: 1rem;
@@ -197,7 +241,6 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  color: var(--text-main);
 }
 
 .task-item.concluida h3 {
@@ -207,7 +250,6 @@ button {
 
 .task-main h3 {
   font-size: 1rem;
-  margin-bottom: 0.2rem;
   font-weight: 600;
 }
 
@@ -260,7 +302,6 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  color: var(--text-main);
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
@@ -277,4 +318,23 @@ button {
 .dashboard-card.dash-warning {
   border-color: var(--danger-hover);
   background: rgba(163, 141, 94, 0.08);
+}
+
+/* === CORREÇÃO USER AREA (BOTÃO À DIREITA) === */
+.user-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Botão vai para o fim da linha */
+.user-area .btn-secondary {
+  margin-left: auto;
 }
