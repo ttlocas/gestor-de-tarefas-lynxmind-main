@@ -1,13 +1,24 @@
 // server/server.js
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+
 const db = require("./db");
+const taskRoutes = require("./routes/tasks");
 
 const app = express();
 const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+
+/* ========== ROTA BASE ========== */
+app.get("/", (req, res) => {
+  res.send("API Gestor de Tarefas a funcionar");
+});
+
+/* ========== ROTAS DE TAREFAS ========== */
+app.use("/tasks", taskRoutes);
 
 /* ========== ROTAS DE PROJETOS ========== */
 
@@ -22,7 +33,7 @@ app.get("/projects", (req, res) => {
   });
 });
 
-// POST criar novo projeto
+// POST criar projeto
 app.post("/projects", (req, res) => {
   const { name, description, status = "ativo", startDate, endDate } = req.body;
 
@@ -85,12 +96,9 @@ app.put("/projects/:id", (req, res) => {
   );
 });
 
-// DELETE projeto (tarefas ficam com project_id = NULL)
+// DELETE projeto
 app.delete("/projects/:id", (req, res) => {
-  const { id } = req.params;
-
-  const sql = `DELETE FROM projects WHERE id = ?`;
-  db.run(sql, [id], function (err) {
+  db.run("DELETE FROM projects WHERE id = ?", [req.params.id], function (err) {
     if (err) {
       console.error("Erro ao apagar projeto:", err);
       return res.status(500).json({ error: "Erro ao apagar projeto" });
@@ -99,115 +107,7 @@ app.delete("/projects/:id", (req, res) => {
   });
 });
 
-/* ========== ROTAS DE TAREFAS ========== */
-
-// GET todas as tarefas (pode filtrar por projeto)
-app.get("/tasks", (req, res) => {
-  const { projectId } = req.query;
-
-  let sql = `
-    SELECT
-      t.*,
-      p.name AS project_name
-    FROM tasks t
-    LEFT JOIN projects p ON t.project_id = p.id
-  `;
-  const params = [];
-
-  if (projectId) {
-    sql += " WHERE t.project_id = ?";
-    params.push(projectId);
-  }
-
-  db.all(sql, params, (err, rows) => {
-    if (err) {
-      console.error("Erro ao buscar tarefas:", err);
-      return res.status(500).json({ error: "Erro ao buscar tarefas" });
-    }
-
-    const tasks = rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      desc: row.description,
-      status: row.status,
-      priority: row.priority,
-      dueDate: row.due_date,
-      projectId: row.project_id,
-      projectName: row.project_name || null,
-    }));
-
-    res.json(tasks);
-  });
-});
-
-// POST criar nova tarefa
-app.post("/tasks", (req, res) => {
-  const { title, desc, status, priority, dueDate, projectId } = req.body;
-
-  if (!title || !status || !priority) {
-    return res.status(400).json({ error: "Campos obrigatórios em falta" });
-  }
-
-  const sql = `
-    INSERT INTO tasks (title, description, status, priority, due_date, project_id)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-
-  db.run(
-    sql,
-    [title, desc || "", status, priority, dueDate || null, projectId || null],
-    function (err) {
-      if (err) {
-        console.error("Erro ao criar tarefa:", err);
-        return res.status(500).json({ error: "Erro ao criar tarefa" });
-      }
-
-      res.status(201).json({
-        id: this.lastID,
-        title,
-        desc: desc || "",
-        status,
-        priority,
-        dueDate: dueDate || null,
-        projectId: projectId || null,
-      });
-    }
-  );
-});
-
-// PUT atualizar status
-app.put("/tasks/:id", (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  if (!status) {
-    return res.status(400).json({ error: "Status é obrigatório" });
-  }
-
-  const sql = `UPDATE tasks SET status = ? WHERE id = ?`;
-  db.run(sql, [status, id], function (err) {
-    if (err) {
-      console.error("Erro ao atualizar tarefa:", err);
-      return res.status(500).json({ error: "Erro ao atualizar tarefa" });
-    }
-    res.json({ success: true });
-  });
-});
-
-// DELETE apagar tarefa
-app.delete("/tasks/:id", (req, res) => {
-  const { id } = req.params;
-
-  const sql = `DELETE FROM tasks WHERE id = ?`;
-  db.run(sql, [id], function (err) {
-    if (err) {
-      console.error("Erro ao apagar tarefa:", err);
-      return res.status(500).json({ error: "Erro ao apagar tarefa" });
-    }
-    res.json({ success: true });
-  });
-});
-
+/* ========== START SERVIDOR ========== */
 app.listen(PORT, () => {
   console.log(`Servidor a rodar em http://localhost:${PORT}`);
 });
