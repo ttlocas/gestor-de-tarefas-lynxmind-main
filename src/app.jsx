@@ -15,7 +15,8 @@ const STATUS_OPTIONS = [
   { value: "concluida", label: "Concluída" },
 ];
 
-const API_URL = "http://localhost:3001";
+const API_URL = "http://localhost:3001/gestor-de-tarefas-lynxmind";
+
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -52,10 +53,21 @@ function App() {
     async function fetchData() {
       setLoading(true);
       try {
-        const [resTasks, resProjects] = await Promise.all([
-          fetch(`${API_URL}/tasks`),
-          fetch(`${API_URL}/projects`),
-        ]);
+      const { data: tasksData, error: tasksError } = await supabase
+  .from("tasks")
+  .select("*");
+
+const { data: projectsData, error: projectsError } = await supabase
+  .from("projects")
+  .select("*");
+
+if (tasksError || projectsError) {
+  throw new Error("Erro no Supabase");
+}
+
+setTasks(tasksData || []);
+setProjects(projectsData || []);
+
 
         if (!resTasks.ok || !resProjects.ok) throw new Error("Falha no fetch");
 
