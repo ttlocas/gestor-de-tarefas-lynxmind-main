@@ -7,7 +7,8 @@ const STATUS_OPTIONS = [
 ];
 
 export default function TaskForm({ onAddTask, projects }) {
-const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [status, setStatus] = useState("pendente");
   const [priority, setPriority] = useState("media");
   const [dueDate, setDueDate] = useState("");
@@ -23,15 +24,15 @@ const [description, setDescription] = useState("");
 
     onAddTask({
       title: title.trim(),
-       description: description.trim() || null,
+      description: description.trim() || null,
       status,
       priority,
       dueDate: dueDate || null,
-       project_id: projectId ? projectId : null,
+      project_id: projectId ? projectId : null,
     });
 
     setTitle("");
-     setDescription("");
+    setDescription("");
     setStatus("pendente");
     setPriority("media");
     setDueDate("");
@@ -54,7 +55,7 @@ const [description, setDescription] = useState("");
         <label>Descrição</label>
         <textarea
           placeholder="Detalhes da tarefa (opcional)"
-             value={description}
+          value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
@@ -79,7 +80,8 @@ const [description, setDescription] = useState("");
             <option value="alta">Alta</option>
           </select>
         </div>
-  <div className="form-row date-field">
+
+        <div className="form-row date-field">
           <label>Data limite</label>
           <div className="date-wrapper">
             <input
@@ -121,4 +123,4 @@ const [description, setDescription] = useState("");
       </button>
     </form>
   );
-}  
+}

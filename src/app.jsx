@@ -15,9 +15,6 @@ const STATUS_OPTIONS = [
   { value: "concluida", label: "Concluída" },
 ];
 
-const API_URL = "http://localhost:3001/gestor-de-tarefas-lynxmind";
-
-
 function App() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -41,39 +38,31 @@ function App() {
       }
     );
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Fetch de dados
+  // Fetch de tarefas e projetos
   useEffect(() => {
     if (!currentUser) return;
 
     async function fetchData() {
       setLoading(true);
       try {
-      const { data: tasksData, error: tasksError } = await supabase
-  .from("tasks")
-  .select("*");
+        const { data: tasksData, error: tasksError } = await supabase
+          .from("tasks")
+          .select("*");
 
-const { data: projectsData, error: projectsError } = await supabase
-  .from("projects")
-  .select("*");
+        const { data: projectsData, error: projectsError } = await supabase
+          .from("projects")
+          .select("*");
 
-if (tasksError || projectsError) {
-  throw new Error("Erro no Supabase");
-}
+        if (tasksError) throw tasksError;
+        if (projectsError) throw projectsError;
 
-setTasks(tasksData || []);
-setProjects(projectsData || []);
-
-
-        if (!resTasks.ok || !resProjects.ok) throw new Error("Falha no fetch");
-
-        setTasks(await resTasks.json());
-        setProjects(await resProjects.json());
+        setTasks(tasksData || []);
+        setProjects(projectsData || []);
       } catch (err) {
+        console.error(err);
         alert("Erro ao carregar dados do servidor.");
       } finally {
         setLoading(false);
@@ -86,75 +75,88 @@ setProjects(projectsData || []);
   // Auth
   async function handleLogin(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert(error.message);
-      return false;
-    }
-    return true;
+    if (error) alert(error.message);
   }
 
   async function handleSignup(email, password) {
     const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: email.split('@')[0] } },
+      email,
+      password,
+      options: { data: { full_name: email.split("@")[0] } },
     });
-
     if (error) return alert(error.message);
     alert("Conta criada! Verifica o email para confirmar.");
   }
 
-  function handleLogout() { supabase.auth.signOut(); }
+  function handleLogout() {
+    supabase.auth.signOut();
+  }
 
-  // Backend Tasks
+  // Tasks
   async function handleAddTask(newTask) {
     try {
-      await fetch(`${API_URL}/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTask),
-      });
-      const res = await fetch(`${API_URL}/tasks`);
-      setTasks(await res.json());
-    } catch {
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert([{ ...newTask, user_id: currentUser.id }])
+        .select()
+        .single();
+      if (error) throw error;
+      setTasks(prev => [...prev, data]);
+    } catch (err) {
+      console.error(err);
       alert("Erro ao criar tarefa.");
     }
   }
 
   async function handleToggleStatus(id) {
-    const task = tasks.find((t) => t.id === id);
+    const task = tasks.find(t => t.id === id);
     if (!task) return;
-
     const newStatus = task.status === "concluida" ? "pendente" : "concluida";
 
-    await fetch(`${API_URL}/tasks/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    });
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: newStatus })
+      .eq("id", id);
 
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+    if (error) return alert(error.message);
+
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)));
   }
 
   async function handleDelete(id) {
     if (!confirm("Tens a certeza que queres apagar esta tarefa?")) return;
-    await fetch(`${API_URL}/tasks/${id}`, { method: "DELETE" });
+
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id);
+
+    if (error) return alert(error.message);
+
     setTasks(prev => prev.filter(t => t.id !== id));
   }
 
   // Projects
   async function handleAddProject(newProject) {
-    const res = await fetch(`${API_URL}/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newProject),
-    });
-    setProjects(prev => [...prev, res.json()]);
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .insert([newProject])
+        .select()
+        .single();
+      if (error) throw error;
+      setProjects(prev => [...prev, data]);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao criar projeto.");
+    }
   }
 
-  // Users (frontend)
+  // Users
   function handleUpdateUser(id, updates) {
-    setUserList(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
   }
+
   function handleAddUser(newUser) {
     setUserList(prev => [...prev, { id: Date.now(), ...newUser, active: true }]);
   }
@@ -182,29 +184,23 @@ setProjects(projectsData || []);
 
   return (
     <div className="app-container">
-      {/* HEADER */}
       <header className="app-header">
-        <div className="topbar">
-          <div className="logo-area">
-            {/* SVG original mantido */}
-            <svg className="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
-              <path d="M30 60 C40 30, 60 30, 70 60" stroke="#38BDF8" strokeWidth="6" strokeLinecap="round" />
-              <circle cx="40" cy="50" r="5" fill="#00D5A5" />
-              <circle cx="60" cy="50" r="5" fill="#00D5A5" />
-            </svg>
-            <h1 className="gradient-title">Lynxmind · Portal de Gestão de Tarefas & Projetos</h1>
-          </div>
-
-          <div className="user-area">
-            <span className="user-pill"><span className="user-name">{currentUser.email}</span></span>
-            <button className="btn-secondary" onClick={handleLogout}>Terminar sessão</button>
-          </div>
+        <div className="logo-area">
+          <svg className="logo" viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
+            <path d="M30 60 C40 30, 60 30, 70 60" stroke="#38BDF8" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="40" cy="50" r="5" fill="#00D5A5" />
+            <circle cx="60" cy="50" r="5" fill="#00D5A5" />
+          </svg>
+          <h1 className="gradient-title">Lynxmind · Portal de Gestão de Tarefas & Projetos</h1>
+        </div>
+        <div className="user-area">
+          <span className="user-pill">{currentUser.email}</span>
+          <button className="btn-secondary" onClick={handleLogout}>Terminar sessão</button>
         </div>
         <p>Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾</p>
       </header>
 
-      {/* MAIN */}
       <main className="app-main" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         <section className="card">
           <Dashboard
@@ -245,7 +241,7 @@ setProjects(projectsData || []);
         <section className="card">
           <div className="list-header">
             <h2>Minhas tarefas</h2>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="todas">Todas</option>
               <option value="pendente">Pendentes</option>
               <option value="em_progresso">Em progresso</option>
