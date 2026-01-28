@@ -7,8 +7,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function TaskForm({ onAddTask, projects }) {
-  const [title, setTitle] = useState("");
-  const [desc, setDesc] = useState("");
+const [description, setDescription] = useState("");
   const [status, setStatus] = useState("pendente");
   const [priority, setPriority] = useState("media");
   const [dueDate, setDueDate] = useState("");
@@ -16,6 +15,7 @@ export default function TaskForm({ onAddTask, projects }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+
     if (!title.trim()) {
       alert("O título é obrigatório.");
       return;
@@ -23,15 +23,15 @@ export default function TaskForm({ onAddTask, projects }) {
 
     onAddTask({
       title: title.trim(),
-      desc: desc.trim(),
+       description: description.trim() || null,
       status,
       priority,
       dueDate: dueDate || null,
-      projectId: projectId ? Number(projectId) : null,
+       project_id: projectId ? projectId : null,
     });
 
     setTitle("");
-    setDesc("");
+     setDescription("");
     setStatus("pendente");
     setPriority("media");
     setDueDate("");
@@ -54,8 +54,8 @@ export default function TaskForm({ onAddTask, projects }) {
         <label>Descrição</label>
         <textarea
           placeholder="Detalhes da tarefa (opcional)"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
+             value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
       </div>
 
@@ -79,8 +79,7 @@ export default function TaskForm({ onAddTask, projects }) {
             <option value="alta">Alta</option>
           </select>
         </div>
-
-        <div className="form-row date-field">
+  <div className="form-row date-field">
           <label>Data limite</label>
           <div className="date-wrapper">
             <input
@@ -122,4 +121,4 @@ export default function TaskForm({ onAddTask, projects }) {
       </button>
     </form>
   );
-}
+}  
