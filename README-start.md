@@ -10,4 +10,3 @@
    ```
 3. Abre o URL indicado no terminal (ex.: http://localhost:5173).
 
-Já tens React + Tailwind v4 a funcionar com Dark/Light toggle.
