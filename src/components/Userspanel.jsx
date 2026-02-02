@@ -59,8 +59,7 @@ export default function UsersPanel({
                         }
                       >
                         <option value="admin">admin</option>
-                        <option value="gestor">gestor</option>
-                        <option value="colab">colab</option>
+                        <option value="utilizador">utilizador</option>
                       </select>
                     ) : (
                       <span className="badge-role">{u.role}</span>
@@ -124,8 +123,7 @@ export default function UsersPanel({
                   onChange={(e) => setRole(e.target.value)}
                 >
                   <option value="admin">admin</option>
-                  <option value="gestor">gestor</option>
-                  <option value="colab">colab</option>
+                  <option value="utilizador">utilizador</option>
                 </select>
               </div>
 

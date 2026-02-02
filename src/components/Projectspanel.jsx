@@ -49,7 +49,7 @@ export default function ProjectsPanel({ projects, onAddProject, canManageProject
         </form>
       ) : (
         <p className="empty">
-          Apenas utilizadores com papel <strong>admin</strong> ou{" "}
+          Apenas utilizadores com papel <strong>admin</strong> {" "}
           <strong></strong> podem criar projetos.
         </p>
       )}

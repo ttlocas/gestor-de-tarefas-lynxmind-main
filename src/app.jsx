@@ -23,8 +23,10 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [userList, setUserList] = useState([]);
+  const [userRole, setUserRole] = useState("user");
+  const [userNome, setUserNome] = useState(null);
 
-  // Sessão Supabase
+  // Sessão Supabase + listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
@@ -40,6 +42,52 @@ function App() {
 
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  // Busca o nome do utilizador na tabela profiles
+  useEffect(() => {
+    if (!currentUser) return;
+
+    async function fetchUserNome() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (error) {
+        console.error("Erro ao buscar nome:", error);
+        setUserNome(null);
+        return;
+      }
+
+      setUserNome(data.full_name);
+    }
+
+    fetchUserNome();
+  }, [currentUser]);
+
+  // Fetch role do utilizador
+  useEffect(() => {
+    if (!currentUser) return;
+
+    async function fetchUserRole() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (error) {
+        console.error("Erro ao buscar role:", error);
+        setUserRole("user");
+        return;
+      }
+
+      setUserRole(data.role);
+    }
+
+    fetchUserRole();
+  }, [currentUser]);
 
   // Fetch de tarefas e projetos
   useEffect(() => {
@@ -79,12 +127,20 @@ function App() {
   }
 
   async function handleSignup(email, password) {
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: email.split("@")[0] } },
     });
-    if (error) return alert(error.message);
+    if (authError) return alert(authError.message);
+
+    // Certifica-se que o perfil existe na tabela profiles
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert([{ id: authData.user.id, full_name: email.split("@")[0], role: "user" }]);
+
+    if (profileError) console.error("Erro ao criar perfil:", profileError);
+
     alert("Conta criada! Verifica o email para confirmar.");
   }
 
@@ -177,9 +233,8 @@ function App() {
   if (!currentUser) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
 
   // Permissões
-  const userRole = currentUser?.user_metadata?.role || "colab";
-  const canManageProjects = ["admin", "gestor"].includes(userRole);
-  const canDeleteTasks = ["admin", "gestor"].includes(userRole);
+  const canManageProjects = userRole === "admin";
+  const canDeleteTasks = userRole === "admin";
   const canManageUsers = userRole === "admin";
 
   return (
@@ -194,10 +249,18 @@ function App() {
           </svg>
           <h1 className="gradient-title">Lynxmind · Portal de Gestão de Tarefas & Projetos</h1>
         </div>
-        <div className="user-area">
-          <span className="user-pill">{currentUser.email}</span>
-          <button className="btn-secondary" onClick={handleLogout}>Terminar sessão</button>
+        <div className="user-area" style={{ textAlign: "right" }}>
+          <button className="btn-secondary" onClick={handleLogout}>
+            Terminar sessão
+          </button>
+
+          {userNome && (
+            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
+              {userNome}
+            </div>
+          )}
         </div>
+
         <p>Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾</p>
       </header>
 
