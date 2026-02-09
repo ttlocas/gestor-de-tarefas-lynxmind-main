@@ -43,50 +43,44 @@ function App() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Busca o nome do utilizador na tabela profiles
+  // Busca ou cria perfil do utilizador
   useEffect(() => {
     if (!currentUser) return;
 
-    async function fetchUserNome() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", currentUser.id)
-        .single();
+    async function fetchUserProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", currentUser.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Erro ao buscar nome:", error);
-        setUserNome(null);
-        return;
-      }
+        if (error) throw error;
 
-      setUserNome(data.full_name);
-    }
+        if (!data) {
+          // Se não existe, cria automaticamente
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert([{ id: currentUser.id, full_name: currentUser.email, role: "user" }])
+            .select()
+            .maybeSingle();
 
-    fetchUserNome();
-  }, [currentUser]);
+          if (insertError) throw insertError;
 
-  // Fetch role do utilizador
-  useEffect(() => {
-    if (!currentUser) return;
-
-    async function fetchUserRole() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
-        .single();
-
-      if (error) {
-        console.error("Erro ao buscar role:", error);
+          setUserNome(newProfile.full_name);
+          setUserRole(newProfile.role);
+        } else {
+          setUserNome(data.full_name);
+          setUserRole(data.role);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar perfil:", err);
+        setUserNome(currentUser.email);
         setUserRole("user");
-        return;
       }
-
-      setUserRole(data.role);
     }
 
-    fetchUserRole();
+    fetchUserProfile();
   }, [currentUser]);
 
   // Fetch de tarefas e projetos
@@ -134,7 +128,7 @@ function App() {
     });
     if (authError) return alert(authError.message);
 
-    // Certifica-se que o perfil existe na tabela profiles
+    // Cria perfil na tabela profiles
     const { error: profileError } = await supabase
       .from("profiles")
       .upsert([{ id: authData.user.id, full_name: email.split("@")[0], role: "user" }]);
@@ -155,7 +149,7 @@ function App() {
         .from("tasks")
         .insert([{ ...newTask, user_id: currentUser.id }])
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
       setTasks(prev => [...prev, data]);
     } catch (err) {
@@ -199,7 +193,7 @@ function App() {
         .from("projects")
         .insert([newProject])
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
       setProjects(prev => [...prev, data]);
     } catch (err) {
@@ -209,12 +203,41 @@ function App() {
   }
 
   // Users
-  function handleUpdateUser(id, updates) {
-    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+  async function handleAddUser(newUser) {
+    try {
+      if (!newUser.email || !newUser.name) {
+        alert("Nome e email são obrigatórios.");
+        return;
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: "SenhaTemp123!",
+        options: {
+          data: { full_name: newUser.name, role: newUser.role || "utilizador" },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .insert([{ id: signUpData.user.id, full_name: newUser.name, role: newUser.role || "utilizador" }])
+        .select()
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      setUserList(prev => [...prev, profileData]);
+      alert(`Usuário ${newUser.name} criado com senha temporária!`);
+    } catch (err) {
+      console.error("Erro ao criar usuário:", err);
+      alert("Erro ao criar usuário. Vê o console para detalhes.");
+    }
   }
 
-  function handleAddUser(newUser) {
-    setUserList(prev => [...prev, { id: Date.now(), ...newUser, active: true }]);
+  function handleUpdateUser(id, updates) {
+    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
   }
 
   // Estatísticas
@@ -232,7 +255,6 @@ function App() {
   if (authLoading) return <div className="app-container">A verificar sessão...</div>;
   if (!currentUser) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
 
-  // Permissões
   const canManageProjects = userRole === "admin";
   const canDeleteTasks = userRole === "admin";
   const canManageUsers = userRole === "admin";
@@ -253,14 +275,12 @@ function App() {
           <button className="btn-secondary" onClick={handleLogout}>
             Terminar sessão
           </button>
-
           {userNome && (
-            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
+            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#000000" }}>
               {userNome}
             </div>
           )}
         </div>
-
         <p>Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾</p>
       </header>
 
@@ -298,18 +318,24 @@ function App() {
 
         <section className="card">
           <h2>Criar nova tarefa</h2>
+          {/* NOTA: Certifica-te que dentro do TaskForm.jsx os selects também têm o <div className="select-wrapper"> */}
           <TaskForm onAddTask={handleAddTask} projects={projects} />
         </section>
 
         <section className="card">
-          <div className="list-header">
-            <h2>Minhas tarefas</h2>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="todas">Todas</option>
-              <option value="pendente">Pendentes</option>
-              <option value="em_progresso">Em progresso</option>
-              <option value="concluida">Concluídas</option>
-            </select>
+          <div className="list-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <h2 style={{ margin: 0 }}>Minhas tarefas</h2>
+            
+            {/* AQUI ESTAVA O ERRO: Adicionei o wrapper para o select ficar arredondado */}
+            <div className="select-wrapper" style={{ width: "200px" }}>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="todas">Todas</option>
+                <option value="pendente">Pendentes</option>
+                <option value="em_progresso">Em progresso</option>
+                <option value="concluida">Concluídas</option>
+              </select>
+            </div>
+            
           </div>
 
           {loading ? (
