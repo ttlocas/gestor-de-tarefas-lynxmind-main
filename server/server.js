@@ -1,113 +1,46 @@
-// server/server.js
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-
-const db = require("./db");
-const taskRoutes = require("./routes/tasks");
+// server.js
+import express from "express";
+import cors from "cors";
+import { createClient } from "@supabase/supabase-js";
 
 const app = express();
-const PORT = 3001;
-
 app.use(cors());
 app.use(express.json());
 
-/* ========== ROTA BASE ========== */
-app.get("/", (req, res) => {
-  res.send("API Gestor de Tarefas a funcionar");
-});
+// Cliente Supabase com service_role key (NUNCA colocar no frontend!)
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-/* ========== ROTAS DE TAREFAS ========== */
-app.use("/tasks", taskRoutes);
+app.post("/create-user", async (req, res) => {
+  const { email, full_name, role } = req.body;
 
-/* ========== ROTAS DE PROJETOS ========== */
-
-// GET todos os projetos
-app.get("/projects", (req, res) => {
-  db.all("SELECT * FROM projects", [], (err, rows) => {
-    if (err) {
-      console.error("Erro ao buscar projetos:", err);
-      return res.status(500).json({ error: "Erro ao buscar projetos" });
-    }
-    res.json(rows);
-  });
-});
-
-// POST criar projeto
-app.post("/projects", (req, res) => {
-  const { name, description, status = "ativo", startDate, endDate } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: "Nome do projeto é obrigatório" });
+  if (!email || !full_name || !role) {
+    return res.status(400).json({ error: "Campos obrigatórios em falta." });
   }
 
-  const sql = `
-    INSERT INTO projects (name, description, status, start_date, end_date)
-    VALUES (?, ?, ?, ?, ?)
-  `;
+  try {
+    // Criar usuário no Auth
+    const { data: user, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: "SenhaTemp123!", // senha temporária
+      email_confirm: true
+    });
 
-  db.run(
-    sql,
-    [name, description || "", status, startDate || null, endDate || null],
-    function (err) {
-      if (err) {
-        console.error("Erro ao criar projeto:", err);
-        return res.status(500).json({ error: "Erro ao criar projeto" });
-      }
+    if (authError) throw authError;
 
-      res.status(201).json({
-        id: this.lastID,
-        name,
-        description: description || "",
-        status,
-        startDate: startDate || null,
-        endDate: endDate || null,
-      });
-    }
-  );
+    // Criar perfil na tabela profiles
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .insert([{ id: user.id, full_name, role }]);
+
+    if (profileError) throw profileError;
+
+    res.json({ user: { id: user.id, email, full_name, role } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PUT atualizar projeto
-app.put("/projects/:id", (req, res) => {
-  const { id } = req.params;
-  const { name, description, status, startDate, endDate } = req.body;
-
-  const sql = `
-    UPDATE projects
-    SET
-      name = COALESCE(?, name),
-      description = COALESCE(?, description),
-      status = COALESCE(?, status),
-      start_date = COALESCE(?, start_date),
-      end_date = COALESCE(?, end_date)
-    WHERE id = ?
-  `;
-
-  db.run(
-    sql,
-    [name, description, status, startDate, endDate, id],
-    function (err) {
-      if (err) {
-        console.error("Erro ao atualizar projeto:", err);
-        return res.status(500).json({ error: "Erro ao atualizar projeto" });
-      }
-      res.json({ success: true });
-    }
-  );
-});
-
-// DELETE projeto
-app.delete("/projects/:id", (req, res) => {
-  db.run("DELETE FROM projects WHERE id = ?", [req.params.id], function (err) {
-    if (err) {
-      console.error("Erro ao apagar projeto:", err);
-      return res.status(500).json({ error: "Erro ao apagar projeto" });
-    }
-    res.json({ success: true });
-  });
-});
-
-/* ========== START SERVIDOR ========== */
-app.listen(PORT, () => {
-  console.log(`Servidor a rodar em http://localhost:${PORT}`);
-});
+app.listen(3000, () => console.log("Backend rodando na porta 3000"));

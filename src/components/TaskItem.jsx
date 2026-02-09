@@ -17,16 +17,20 @@ export default function TaskItem({
     STATUS_OPTIONS.find((s) => s.value === task.status)?.label ||
     task.status;
 
-  const project = projects.find((p) => p.id === task.projectId);
+  // Ajustado para bater com o nome da coluna vinda do Supabase (geralmente project_id)
+  const project = projects.find((p) => p.id === (task.project_id || task.projectId));
   const projectName = project ? project.name : null;
 
   return (
     <li className={`task-item ${task.status}`}>
       <div className="task-main">
         <h3>{task.title}</h3>
-        {task.desc && <p className="task-desc">{task.desc}</p>}
+        {/* Corrigido de task.desc para task.description conforme o seu formulário */}
+        {(task.description || task.desc) && (
+          <p className="task-desc">{task.description || task.desc}</p>
+        )}
 
-        <div className="task-meta">
+        <div className="task-meta" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
           <span className={`pill priority-${task.priority}`}>
             Prioridade: {task.priority}
           </span>
@@ -45,14 +49,14 @@ export default function TaskItem({
         </div>
       </div>
 
-      <div className="task-actions">
+      <div className="task-actions" style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
         <button
           onClick={() => onToggleStatus(task.id)}
           className="btn-secondary"
         >
           {task.status === "concluida"
-            ? "Marcar como pendente"
-            : "Marcar como concluída"}
+            ? "Reabrir"
+            : "Concluir"}
         </button>
 
         {canDelete && (

@@ -11,7 +11,7 @@ export default function Dashboard({
   return (
     <div>
       <h2>Resumo geral</h2>
-      <p className="dashboard-subtitle">
+      <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
         Indicadores rápidos do portal (projetos, tarefas e atrasos)
       </p>
 
@@ -41,9 +41,13 @@ export default function Dashboard({
           <span className="dash-value">{tasksDone}</span>
         </div>
 
-        <div className="dashboard-card dash-warning">
+        {/* Adicionei um estilo condicional para o card de atraso se destacar */}
+        <div className={`dashboard-card ${lateTasks > 0 ? 'dash-warning' : ''}`} 
+             style={lateTasks > 0 ? { borderLeft: "4px solid var(--danger)" } : {}}>
           <span className="dash-label">Em atraso</span>
-          <span className="dash-value">{lateTasks}</span>
+          <span className="dash-value" style={lateTasks > 0 ? { color: "var(--danger)" } : {}}>
+            {lateTasks}
+          </span>
         </div>
       </div>
     </div>

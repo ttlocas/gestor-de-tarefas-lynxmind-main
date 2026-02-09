@@ -3,12 +3,14 @@ import React, { useState } from "react";
 export default function LoginScreen({ onLogin, onSignup }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nome, setNome] = useState("");
   const [isSignupMode, setIsSignupMode] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     if (isSignupMode) {
-      await onSignup(email.trim(), password);
+      await onSignup(email.trim(), password, nome.trim());
     } else {
       await onLogin(email.trim(), password);
     }
@@ -38,11 +40,26 @@ export default function LoginScreen({ onLogin, onSignup }) {
           <h1 className="gradient-title">Lynxmind · Portal Interno</h1>
         </div>
 
-        <p>{isSignupMode ? "Criar conta" : "Iniciar sessão"}</p>
+        <p style={{ marginTop: "0.5rem" }}>
+          {isSignupMode ? "Criar conta" : "Iniciar sessão"}
+        </p>
       </header>
 
       <section className="card">
         <form className="task-form" onSubmit={handleSubmit}>
+          {isSignupMode && (
+            <div className="form-row">
+              <label>Nome</label>
+              <input
+                type="text"
+                placeholder="O teu nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <div className="form-row">
             <label>Email</label>
             <input
@@ -66,7 +83,7 @@ export default function LoginScreen({ onLogin, onSignup }) {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary" style={{ width: "100%" }}>
             {isSignupMode ? "Criar conta" : "Entrar"}
           </button>
         </form>
@@ -75,6 +92,7 @@ export default function LoginScreen({ onLogin, onSignup }) {
           <button
             type="button"
             className="btn-secondary"
+            style={{ width: "100%" }}
             onClick={() => setIsSignupMode(!isSignupMode)}
           >
             {isSignupMode
@@ -86,8 +104,9 @@ export default function LoginScreen({ onLogin, onSignup }) {
         <div
           style={{
             marginTop: "1.5rem",
-            fontSize: "0.9rem",
-            color: "#9ca3af",
+            textAlign: "center",
+            fontSize: "0.85rem",
+            color: "#6b7280",
           }}
         >
           <p>Nota: após registo, confirma o email antes de entrar.</p>

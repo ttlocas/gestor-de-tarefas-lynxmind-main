@@ -63,22 +63,28 @@ export default function TaskForm({ onAddTask, projects }) {
       <div className="form-grid">
         <div className="form-row">
           <label>Estado</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          {/* Adicionado Wrapper */}
+          <div className="select-wrapper">
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="form-row">
           <label>Prioridade</label>
-          <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option value="baixa">Baixa</option>
-            <option value="media">Média</option>
-            <option value="alta">Alta</option>
-          </select>
+          {/* Adicionado Wrapper */}
+          <div className="select-wrapper">
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
         </div>
 
         <div className="form-row date-field">
@@ -105,17 +111,20 @@ export default function TaskForm({ onAddTask, projects }) {
 
       <div className="form-row">
         <label>Projeto</label>
-        <select
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-        >
-          <option value="">Sem projeto</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        {/* Adicionado Wrapper */}
+        <div className="select-wrapper">
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+          >
+            <option value="">Sem projeto</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <button type="submit" className="btn-primary">

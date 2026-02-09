@@ -8,8 +8,6 @@ import UsersPanel from "./components/Userspanel";
 import ProjectsPanel from "./components/Projectspanel";
 import TaskForm from "./components/Taskform";
 import TaskItem from "./components/TaskItem";
-import CustomSelect from "./components/CustomSelect";
-
 
 const STATUS_OPTIONS = [
   { value: "pendente", label: "Pendente" },
@@ -25,8 +23,10 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [userList, setUserList] = useState([]);
+  const [userRole, setUserRole] = useState("user");
+  const [userNome, setUserNome] = useState(null);
 
-  // Sessão Supabase
+  // Sessão Supabase + listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
@@ -40,12 +40,50 @@ function App() {
       }
     );
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Fetch de dados (Supabase)
+  // Busca ou cria perfil do utilizador
+  useEffect(() => {
+    if (!currentUser) return;
+
+    async function fetchUserProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", currentUser.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          // Se não existe, cria automaticamente
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert([{ id: currentUser.id, full_name: currentUser.email, role: "user" }])
+            .select()
+            .maybeSingle();
+
+          if (insertError) throw insertError;
+
+          setUserNome(newProfile.full_name);
+          setUserRole(newProfile.role);
+        } else {
+          setUserNome(data.full_name);
+          setUserRole(data.role);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar perfil:", err);
+        setUserNome(currentUser.email);
+        setUserRole("user");
+      }
+    }
+
+    fetchUserProfile();
+  }, [currentUser]);
+
+  // Fetch de tarefas e projetos
   useEffect(() => {
     if (!currentUser) return;
 
@@ -67,7 +105,7 @@ function App() {
         setProjects(projectsData || []);
       } catch (err) {
         console.error(err);
-        alert(err.message);
+        alert("Erro ao carregar dados do servidor.");
       } finally {
         setLoading(false);
       }
@@ -79,21 +117,24 @@ function App() {
   // Auth
   async function handleLogin(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert(error.message);
-      return false;
-    }
-    return true;
+    if (error) alert(error.message);
   }
 
   async function handleSignup(email, password) {
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: email.split("@")[0] } },
     });
+    if (authError) return alert(authError.message);
 
-    if (error) return alert(error.message);
+    // Cria perfil na tabela profiles
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert([{ id: authData.user.id, full_name: email.split("@")[0], role: "user" }]);
+
+    if (profileError) console.error("Erro ao criar perfil:", profileError);
+
     alert("Conta criada! Verifica o email para confirmar.");
   }
 
@@ -101,49 +142,35 @@ function App() {
     supabase.auth.signOut();
   }
 
-  // Tasks (Supabase)
+  // Tasks
   async function handleAddTask(newTask) {
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert([
-        {
-          ...newTask,
-          user_id: currentUser.id,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      alert(error.message);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert([{ ...newTask, user_id: currentUser.id }])
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      setTasks(prev => [...prev, data]);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao criar tarefa.");
     }
-
-    setTasks((prev) => [...prev, data]);
   }
 
   async function handleToggleStatus(id) {
-    const task = tasks.find((t) => t.id === id);
+    const task = tasks.find(t => t.id === id);
     if (!task) return;
-
-    const newStatus =
-      task.status === "concluida" ? "pendente" : "concluida";
+    const newStatus = task.status === "concluida" ? "pendente" : "concluida";
 
     const { error } = await supabase
       .from("tasks")
       .update({ status: newStatus })
       .eq("id", id);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return alert(error.message);
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status: newStatus } : t
-      )
-    );
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)));
   }
 
   async function handleDelete(id) {
@@ -154,101 +181,105 @@ function App() {
       .delete()
       .eq("id", id);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return alert(error.message);
 
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks(prev => prev.filter(t => t.id !== id));
   }
 
-  // Projects (Supabase)
+  // Projects
   async function handleAddProject(newProject) {
-    const { data, error } = await supabase
-      .from("projects")
-      .insert([newProject])
-      .select()
-      .single();
-
-    if (error) {
-      alert(error.message);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .insert([newProject])
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      setProjects(prev => [...prev, data]);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao criar projeto.");
     }
-
-    setProjects((prev) => [...prev, data]);
   }
 
-  // Users (frontend only)
+  // Users
+  async function handleAddUser(newUser) {
+    try {
+      if (!newUser.email || !newUser.name) {
+        alert("Nome e email são obrigatórios.");
+        return;
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: "SenhaTemp123!",
+        options: {
+          data: { full_name: newUser.name, role: newUser.role || "utilizador" },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .insert([{ id: signUpData.user.id, full_name: newUser.name, role: newUser.role || "utilizador" }])
+        .select()
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      setUserList(prev => [...prev, profileData]);
+      alert(`Usuário ${newUser.name} criado com senha temporária!`);
+    } catch (err) {
+      console.error("Erro ao criar usuário:", err);
+      alert("Erro ao criar usuário. Vê o console para detalhes.");
+    }
+  }
+
   function handleUpdateUser(id, updates) {
-    setUserList((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
-    );
-  }
-
-  function handleAddUser(newUser) {
-    setUserList((prev) => [
-      ...prev,
-      { id: Date.now(), ...newUser, active: true },
-    ]);
+    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
   }
 
   // Estatísticas
   const totalProjects = projects.length;
   const totalTasks = tasks.length;
-  const tasksPending = tasks.filter((t) => t.status === "pendente").length;
-  const tasksInProgress = tasks.filter((t) => t.status === "em_progresso").length;
-  const tasksDone = tasks.filter((t) => t.status === "concluida").length;
+  const tasksPending = tasks.filter(t => t.status === "pendente").length;
+  const tasksInProgress = tasks.filter(t => t.status === "em_progresso").length;
+  const tasksDone = tasks.filter(t => t.status === "concluida").length;
 
   const today = new Date().toISOString().slice(0, 10);
-  const lateTasks = tasks.filter(
-    (t) => t.dueDate && t.dueDate < today && t.status !== "concluida"
-  ).length;
+  const lateTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "concluida").length;
 
-  const filteredTasks =
-    filterStatus === "todas"
-      ? tasks
-      : tasks.filter((t) => t.status === filterStatus);
+  const filteredTasks = filterStatus === "todas" ? tasks : tasks.filter(t => t.status === filterStatus);
 
-  if (authLoading)
-    return <div className="app-container">A verificar sessão...</div>;
-  if (!currentUser)
-    return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
+  if (authLoading) return <div className="app-container">A verificar sessão...</div>;
+  if (!currentUser) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
 
-  // Permissões
-  const userRole = currentUser?.user_metadata?.role || "colab";
-  const canManageProjects = ["admin", "gestor"].includes(userRole);
-  const canDeleteTasks = ["admin", "gestor"].includes(userRole);
+  const canManageProjects = userRole === "admin";
+  const canDeleteTasks = userRole === "admin";
   const canManageUsers = userRole === "admin";
 
   return (
     <div className="app-container">
       <header className="app-header">
-        <div className="topbar">
-          <div className="logo-area">
-            <svg className="logo" viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
-              <path
-                d="M30 60 C40 30, 60 30, 70 60"
-                stroke="#38BDF8"
-                strokeWidth="6"
-                strokeLinecap="round"
-              />
-              <circle cx="40" cy="50" r="5" fill="#00D5A5" />
-              <circle cx="60" cy="50" r="5" fill="#00D5A5" />
-            </svg>
-            <h1 className="gradient-title">
-              Lynxmind · Portal de Gestão de Tarefas & Projetos
-            </h1>
-          </div>
-
-          <div className="user-area">
-            <span className="user-pill">
-              <span className="user-name">{currentUser.email}</span>
-            </span>
-            <button className="btn-secondary" onClick={handleLogout}>
-              Terminar sessão
-            </button>
-          </div>
+        <div className="logo-area">
+          <svg className="logo" viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
+            <path d="M30 60 C40 30, 60 30, 70 60" stroke="#38BDF8" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="40" cy="50" r="5" fill="#00D5A5" />
+            <circle cx="60" cy="50" r="5" fill="#00D5A5" />
+          </svg>
+          <h1 className="gradient-title">Lynxmind · Portal de Gestão de Tarefas & Projetos</h1>
+        </div>
+        <div className="user-area" style={{ textAlign: "right" }}>
+          <button className="btn-secondary" onClick={handleLogout}>
+            Terminar sessão
+          </button>
+          {userNome && (
+            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#000000" }}>
+              {userNome}
+            </div>
+          )}
         </div>
         <p>Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾</p>
       </header>
@@ -287,18 +318,24 @@ function App() {
 
         <section className="card">
           <h2>Criar nova tarefa</h2>
+          {/* NOTA: Certifica-te que dentro do TaskForm.jsx os selects também têm o <div className="select-wrapper"> */}
           <TaskForm onAddTask={handleAddTask} projects={projects} />
         </section>
 
         <section className="card">
-          <div className="list-header">
-            <h2>Minhas tarefas</h2>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="todas">Todas</option>
-              <option value="pendente">Pendentes</option>
-              <option value="em_progresso">Em progresso</option>
-              <option value="concluida">Concluídas</option>
-            </select>
+          <div className="list-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <h2 style={{ margin: 0 }}>Minhas tarefas</h2>
+            
+            {/* AQUI ESTAVA O ERRO: Adicionei o wrapper para o select ficar arredondado */}
+            <div className="select-wrapper" style={{ width: "200px" }}>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="todas">Todas</option>
+                <option value="pendente">Pendentes</option>
+                <option value="em_progresso">Em progresso</option>
+                <option value="concluida">Concluídas</option>
+              </select>
+            </div>
+            
           </div>
 
           {loading ? (
@@ -307,7 +344,7 @@ function App() {
             <p className="empty">Nenhuma tarefa por aqui ainda… 😴</p>
           ) : (
             <ul className="task-list">
-              {filteredTasks.map((task) => (
+              {filteredTasks.map(task => (
                 <TaskItem
                   key={task.id}
                   task={task}

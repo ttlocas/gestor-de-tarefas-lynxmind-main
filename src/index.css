@@ -22,7 +22,7 @@
   --text-main: #222222;
   --text-muted: #555555;
 
-  /* === TIPOGRAFIA (ESCALA GLOBAL) === */
+  /* === TIPOGRAFIA === */
   --fs-xs: 0.75rem;
   --fs-sm: 0.85rem;
   --fs-md: 1rem;
@@ -111,52 +111,55 @@ body {
 .form-row label {
   font-size: var(--fs-sm);
   color: var(--text-muted);
+  margin-left: 0.5rem; /* Alinhado com o início do arredondamento */
 }
 
-/* === INPUTS & TEXTAREAS === */
+/* === INPUTS / TEXTAREA / SELECT (ARREDONDADOS) === */
 .form-row input,
-.form-row textarea {
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.5rem;
+.select-wrapper select {
+  padding: 0.6rem 1.2rem; /* Mais padding lateral para a curva */
+  height: 44px;
+  border-radius: 999px; /* Efeito Pílula */
   background: #FFFFFF;
   border: 1px solid var(--border-soft);
   color: var(--text-main);
   font-size: var(--fs-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-row textarea {
+  padding: 0.8rem 1rem;
+  border-radius: 1rem; /* Arredondamento suave (pílula não funciona bem em multi-linha) */
+  background: #FFFFFF;
+  border: 1px solid var(--border-soft);
+  color: var(--text-main);
+  font-size: var(--fs-md);
   min-height: 70px;
+  height: auto;
   resize: vertical;
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+.select-wrapper select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
-/* === SELECT === */
+/* === SELECT CUSTOM === */
 .select-wrapper {
   position: relative;
   width: 100%;
-  border-radius: 1rem;
-  overflow: hidden;
 }
 
 .select-wrapper select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 100%;
-  height: 44px;
-  background-color: #FFFFFF;
-  border: 1px solid var(--border-soft);
-  padding: 0 2rem 0 0.75rem;
-  border-radius: 1rem;
-  color: var(--text-main);
-  font-size: var(--fs-md);
+  padding-right: 2.5rem; /* Espaço para a seta */
   cursor: pointer;
+  width: 100%;
 }
 
 .select-wrapper::after {
@@ -164,22 +167,17 @@ textarea:focus {
   position: absolute;
   pointer-events: none;
   top: 50%;
-  right: 10px;
+  right: 15px; /* Seta mais para dentro devido ao arredondamento */
   transform: translateY(-50%);
   width: 12px;
   height: 12px;
   background-image: url("data:image/svg+xml,%3Csvg fill='%23555555' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-size: 100% 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
-select:hover {
+.select-wrapper select:hover {
   border-color: var(--primary);
-}
-
-select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
 /* === GRID === */
@@ -199,14 +197,15 @@ button {
   cursor: pointer;
   border: none;
   font-size: var(--fs-sm);
+  transition: filter 0.2s;
 }
 
 .btn-primary {
   margin-top: 0.5rem;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 999px;
   background: var(--primary);
-  color: #FFFFFF;
+  color: #FFFFFF;;
   font-weight: 600;
 }
 
@@ -215,16 +214,16 @@ button {
 }
 
 .btn-secondary {
-  padding: 0.45rem 0.8rem;
-  border-radius: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px; /* Também arredondado para consistência */
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-soft);
   color: var(--text-main);
 }
 
 .btn-danger {
-  padding: 0.45rem 0.8rem;
-  border-radius: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px; /* Também arredondado */
   background: var(--danger);
   color: #FFFFFF;
 }
@@ -264,9 +263,8 @@ button {
 
 .pill {
   font-size: var(--fs-xs);
-  padding: 0.2rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: var(--bg-surface-elevated);
 }
 
 /* === DASHBOARD === */
