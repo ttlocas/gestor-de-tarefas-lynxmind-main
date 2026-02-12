@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.11.0",
-    "@supabase/supabase-js": "^2.93.3",
+    "@supabase/supabase-js": "^2.95.3",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

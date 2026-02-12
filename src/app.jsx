@@ -28,8 +28,6 @@ function App() {
 
   // Dark mode
   const [darkMode, setDarkMode] = useState(false);
-
-  // Atualiza a classe "dark" no <html>
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -55,7 +53,7 @@ function App() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Buscar perfil
+  // Buscar perfil do user
   useEffect(() => {
     if (!currentUser) return;
 
@@ -70,11 +68,12 @@ function App() {
         if (error) throw error;
 
         if (!data) {
+          // Cria profile se não existir
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
             .insert([{
               id: currentUser.id,
-              full_name: currentUser.email,
+              full_name: currentUser.email.split("@")[0],
               role: "user",
             }])
             .select()
@@ -98,15 +97,39 @@ function App() {
     fetchUserProfile();
   }, [currentUser]);
 
-  // Fetch tarefas e projetos
+  // Buscar todos os profiles se for admin
+  useEffect(() => {
+    if (!currentUser || userRole !== "admin") return;
+
+    async function fetchAllProfiles() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, role, updated_at");
+
+        if (error) throw error;
+
+        setUserList(data || []);
+      } catch (err) {
+        console.error("Erro ao buscar usuários:", err);
+      }
+    }
+
+    fetchAllProfiles();
+  }, [currentUser, userRole]);
+
+  // Buscar tarefas e projetos
   useEffect(() => {
     if (!currentUser) return;
 
     async function fetchData() {
       setLoading(true);
       try {
-        const { data: tasksData } = await supabase.from("tasks").select("*");
-        const { data: projectsData } = await supabase.from("projects").select("*");
+        const { data: tasksData, error: tasksError } = await supabase.from("tasks").select("*");
+        if (tasksError) throw tasksError;
+
+        const { data: projectsData, error: projectsError } = await supabase.from("projects").select("*");
+        if (projectsError) throw projectsError;
 
         setTasks(tasksData || []);
         setProjects(projectsData || []);
@@ -128,13 +151,10 @@ function App() {
   }
 
   async function handleSignup(email, password) {
-    const { data: authData, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
+    const { data: authData, error } = await supabase.auth.signUp({ email, password });
     if (error) return alert(error.message);
 
+    // Cria profile no Supabase
     await supabase.from("profiles").upsert([{
       id: authData.user.id,
       full_name: email.split("@")[0],
@@ -164,14 +184,10 @@ function App() {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
-    const newStatus =
-      task.status === "concluida" ? "pendente" : "concluida";
+    const newStatus = task.status === "concluida" ? "pendente" : "concluida";
 
     await supabase.from("tasks").update({ status: newStatus }).eq("id", id);
-
-    setTasks(prev =>
-      prev.map(t => (t.id === id ? { ...t, status: newStatus } : t))
-    );
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)));
   }
 
   async function handleDelete(id) {
@@ -221,9 +237,7 @@ function App() {
   }
 
   function handleUpdateUser(id, updates) {
-    setUserList(prev =>
-      prev.map(u => (u.id === id ? { ...u, ...updates } : u))
-    );
+    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
   }
 
   // Estatísticas
@@ -234,14 +248,9 @@ function App() {
   const tasksDone = tasks.filter(t => t.status === "concluida").length;
 
   const today = new Date().toISOString().slice(0, 10);
-  const lateTasks = tasks.filter(
-    t => t.dueDate && t.dueDate < today && t.status !== "concluida"
-  ).length;
+  const lateTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "concluida").length;
 
-  const filteredTasks =
-    filterStatus === "todas"
-      ? tasks
-      : tasks.filter(t => t.status === filterStatus);
+  const filteredTasks = filterStatus === "todas" ? tasks : tasks.filter(t => t.status === filterStatus);
 
   if (authLoading) return <div className="app-container">A verificar sessão...</div>;
   if (!currentUser) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
@@ -250,13 +259,9 @@ function App() {
 
   return (
     <div className={`app-container ${darkMode ? "dark" : ""}`}>
-
       {/* Botão Dark Mode */}
       <div style={{ position: "fixed", top: 10, right: 10, zIndex: 1000 }}>
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="btn-secondary"
-        >
+        <button onClick={() => setDarkMode(!darkMode)} className="btn-secondary">
           {darkMode ? "☀️ Claro" : "🌙 Dark"}
         </button>
       </div>
@@ -305,7 +310,7 @@ function App() {
             <h2>Gestão de Utilizadores</h2>
             <UsersPanel
               currentUser={currentUser}
-              users={userList}
+              users={userList} // agora com todos os profiles
               onUpdateUser={handleUpdateUser}
               onAddUser={handleAddUser}
               canManageUsers={true}
