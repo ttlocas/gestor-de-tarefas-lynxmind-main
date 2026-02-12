@@ -26,7 +26,19 @@ function App() {
   const [userRole, setUserRole] = useState("user");
   const [userNome, setUserNome] = useState(null);
 
-  // Sessão Supabase + listener
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Atualiza a classe "dark" no <html>
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  // Sessão Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
@@ -43,7 +55,7 @@ function App() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Busca ou cria perfil do utilizador
+  // Buscar perfil
   useEffect(() => {
     if (!currentUser) return;
 
@@ -58,10 +70,13 @@ function App() {
         if (error) throw error;
 
         if (!data) {
-          // Se não existe, cria automaticamente
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert([{ id: currentUser.id, full_name: currentUser.email, role: "user" }])
+            .insert([{
+              id: currentUser.id,
+              full_name: currentUser.email,
+              role: "user",
+            }])
             .select()
             .maybeSingle();
 
@@ -83,29 +98,21 @@ function App() {
     fetchUserProfile();
   }, [currentUser]);
 
-  // Fetch de tarefas e projetos
+  // Fetch tarefas e projetos
   useEffect(() => {
     if (!currentUser) return;
 
     async function fetchData() {
       setLoading(true);
       try {
-        const { data: tasksData, error: tasksError } = await supabase
-          .from("tasks")
-          .select("*");
-
-        const { data: projectsData, error: projectsError } = await supabase
-          .from("projects")
-          .select("*");
-
-        if (tasksError) throw tasksError;
-        if (projectsError) throw projectsError;
+        const { data: tasksData } = await supabase.from("tasks").select("*");
+        const { data: projectsData } = await supabase.from("projects").select("*");
 
         setTasks(tasksData || []);
         setProjects(projectsData || []);
       } catch (err) {
         console.error(err);
-        alert("Erro ao carregar dados do servidor.");
+        alert("Erro ao carregar dados.");
       } finally {
         setLoading(false);
       }
@@ -121,21 +128,20 @@ function App() {
   }
 
   async function handleSignup(email, password) {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: email.split("@")[0] } },
     });
-    if (authError) return alert(authError.message);
 
-    // Cria perfil na tabela profiles
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert([{ id: authData.user.id, full_name: email.split("@")[0], role: "user" }]);
+    if (error) return alert(error.message);
 
-    if (profileError) console.error("Erro ao criar perfil:", profileError);
+    await supabase.from("profiles").upsert([{
+      id: authData.user.id,
+      full_name: email.split("@")[0],
+      role: "user",
+    }]);
 
-    alert("Conta criada! Verifica o email para confirmar.");
+    alert("Conta criada! Verifica o email.");
   }
 
   function handleLogout() {
@@ -144,100 +150,80 @@ function App() {
 
   // Tasks
   async function handleAddTask(newTask) {
-    try {
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert([{ ...newTask, user_id: currentUser.id }])
-        .select()
-        .maybeSingle();
-      if (error) throw error;
-      setTasks(prev => [...prev, data]);
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao criar tarefa.");
-    }
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([{ ...newTask, user_id: currentUser.id }])
+      .select()
+      .maybeSingle();
+
+    if (error) return alert(error.message);
+    setTasks(prev => [...prev, data]);
   }
 
   async function handleToggleStatus(id) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
-    const newStatus = task.status === "concluida" ? "pendente" : "concluida";
 
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status: newStatus })
-      .eq("id", id);
+    const newStatus =
+      task.status === "concluida" ? "pendente" : "concluida";
 
-    if (error) return alert(error.message);
+    await supabase.from("tasks").update({ status: newStatus }).eq("id", id);
 
-    setTasks(prev => prev.map(t => (t.id === id ? { ...t, status: newStatus } : t)));
+    setTasks(prev =>
+      prev.map(t => (t.id === id ? { ...t, status: newStatus } : t))
+    );
   }
 
   async function handleDelete(id) {
     if (!confirm("Tens a certeza que queres apagar esta tarefa?")) return;
 
-    const { error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", id);
-
-    if (error) return alert(error.message);
-
+    await supabase.from("tasks").delete().eq("id", id);
     setTasks(prev => prev.filter(t => t.id !== id));
   }
 
-  // Projects
+  // Projetos
   async function handleAddProject(newProject) {
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .insert([newProject])
-        .select()
-        .maybeSingle();
-      if (error) throw error;
-      setProjects(prev => [...prev, data]);
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao criar projeto.");
-    }
+    const { data } = await supabase
+      .from("projects")
+      .insert([newProject])
+      .select()
+      .maybeSingle();
+
+    setProjects(prev => [...prev, data]);
   }
 
-  // Users
+  // Utilizadores (ADMIN)
   async function handleAddUser(newUser) {
-    try {
-      if (!newUser.email || !newUser.name) {
-        alert("Nome e email são obrigatórios.");
-        return;
-      }
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: "SenhaTemp123!",
-        options: {
-          data: { full_name: newUser.name, role: newUser.role || "utilizador" },
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .insert([{ id: signUpData.user.id, full_name: newUser.name, role: newUser.role || "utilizador" }])
-        .select()
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      setUserList(prev => [...prev, profileData]);
-      alert(`Usuário ${newUser.name} criado com senha temporária!`);
-    } catch (err) {
-      console.error("Erro ao criar usuário:", err);
-      alert("Erro ao criar usuário. Vê o console para detalhes.");
+    if (!newUser.email || !newUser.name) {
+      alert("Nome e email são obrigatórios.");
+      return;
     }
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: newUser.email,
+      password: "SenhaTemp123!",
+    });
+
+    if (error) return alert(error.message);
+
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .insert([{
+        id: signUpData.user.id,
+        full_name: newUser.name,
+        role: newUser.role || "user",
+      }])
+      .select()
+      .maybeSingle();
+
+    setUserList(prev => [...prev, profileData]);
+    alert(`Usuário ${newUser.name} criado com senha temporária!`);
   }
 
   function handleUpdateUser(id, updates) {
-    setUserList(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+    setUserList(prev =>
+      prev.map(u => (u.id === id ? { ...u, ...updates } : u))
+    );
   }
 
   // Estatísticas
@@ -248,40 +234,58 @@ function App() {
   const tasksDone = tasks.filter(t => t.status === "concluida").length;
 
   const today = new Date().toISOString().slice(0, 10);
-  const lateTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "concluida").length;
+  const lateTasks = tasks.filter(
+    t => t.dueDate && t.dueDate < today && t.status !== "concluida"
+  ).length;
 
-  const filteredTasks = filterStatus === "todas" ? tasks : tasks.filter(t => t.status === filterStatus);
+  const filteredTasks =
+    filterStatus === "todas"
+      ? tasks
+      : tasks.filter(t => t.status === filterStatus);
 
   if (authLoading) return <div className="app-container">A verificar sessão...</div>;
   if (!currentUser) return <LoginScreen onLogin={handleLogin} onSignup={handleSignup} />;
 
-  const canManageProjects = userRole === "admin";
-  const canDeleteTasks = userRole === "admin";
-  const canManageUsers = userRole === "admin";
+  const isAdmin = userRole === "admin";
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${darkMode ? "dark" : ""}`}>
+
+      {/* Botão Dark Mode */}
+      <div style={{ position: "fixed", top: 10, right: 10, zIndex: 1000 }}>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="btn-secondary"
+        >
+          {darkMode ? "☀️ Claro" : "🌙 Dark"}
+        </button>
+      </div>
+
       <header className="app-header">
-        <div className="logo-area">
-          <svg className="logo" viewBox="0 0 100 100" fill="none">
-            <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
-            <path d="M30 60 C40 30, 60 30, 70 60" stroke="#38BDF8" strokeWidth="6" strokeLinecap="round" />
-            <circle cx="40" cy="50" r="5" fill="#00D5A5" />
-            <circle cx="60" cy="50" r="5" fill="#00D5A5" />
-          </svg>
-          <h1 className="gradient-title">Lynxmind · Portal de Gestão de Tarefas & Projetos</h1>
-        </div>
-        <div className="user-area" style={{ textAlign: "right" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: "0.9rem" }}>{userNome}</div>
+
+          <div className="logo-area" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <svg className="logo w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" stroke="#00D5A5" strokeWidth="6" />
+              <path d="M30 60 C40 30, 60 30, 70 60" stroke="#38BDF8" strokeWidth="6" strokeLinecap="round" />
+              <circle cx="40" cy="50" r="5" fill="#00D5A5" />
+              <circle cx="60" cy="50" r="5" fill="#00D5A5" />
+            </svg>
+
+            <h1 className="gradient-title">
+              Lynxmind · Portal de Gestão de Tarefas & Projetos
+            </h1>
+          </div>
+
           <button className="btn-secondary" onClick={handleLogout}>
             Terminar sessão
           </button>
-          {userNome && (
-            <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#000000" }}>
-              {userNome}
-            </div>
-          )}
         </div>
-        <p>Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾</p>
+
+        <p style={{ marginTop: "0.5rem", textAlign: "center" }}>
+          Organiza projetos, tarefas, equipas e prazos como um verdadeiro Lynx 🐾
+        </p>
       </header>
 
       <main className="app-main" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -296,48 +300,35 @@ function App() {
           />
         </section>
 
-        <section className="card">
-          <h2>Gestão de Utilizadores</h2>
-          <UsersPanel
-            currentUser={currentUser}
-            users={userList}
-            onUpdateUser={handleUpdateUser}
-            onAddUser={handleAddUser}
-            canManageUsers={canManageUsers}
-          />
-        </section>
+        {isAdmin && (
+          <section className="card">
+            <h2>Gestão de Utilizadores</h2>
+            <UsersPanel
+              currentUser={currentUser}
+              users={userList}
+              onUpdateUser={handleUpdateUser}
+              onAddUser={handleAddUser}
+              canManageUsers={true}
+            />
+          </section>
+        )}
 
         <section className="card">
           <h2>Projetos</h2>
           <ProjectsPanel
             projects={projects}
             onAddProject={handleAddProject}
-            canManageProjects={canManageProjects}
+            canManageProjects={isAdmin}
           />
         </section>
 
         <section className="card">
           <h2>Criar nova tarefa</h2>
-          {/* NOTA: Certifica-te que dentro do TaskForm.jsx os selects também têm o <div className="select-wrapper"> */}
           <TaskForm onAddTask={handleAddTask} projects={projects} />
         </section>
 
         <section className="card">
-          <div className="list-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-            <h2 style={{ margin: 0 }}>Minhas tarefas</h2>
-            
-            {/* AQUI ESTAVA O ERRO: Adicionei o wrapper para o select ficar arredondado */}
-            <div className="select-wrapper" style={{ width: "200px" }}>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="todas">Todas</option>
-                <option value="pendente">Pendentes</option>
-                <option value="em_progresso">Em progresso</option>
-                <option value="concluida">Concluídas</option>
-              </select>
-            </div>
-            
-          </div>
-
+          <h2>Minhas tarefas</h2>
           {loading ? (
             <p className="empty">A carregar tarefas...</p>
           ) : filteredTasks.length === 0 ? (
@@ -351,7 +342,7 @@ function App() {
                   projects={projects}
                   onToggleStatus={handleToggleStatus}
                   onDelete={handleDelete}
-                  canDelete={canDeleteTasks}
+                  canDelete={isAdmin}
                 />
               ))}
             </ul>

@@ -31,6 +31,31 @@
   --fs-2xl: 1.9rem;
 }
 
+/* === TEMA DARK === */
+:root.dark {
+  /* FUNDOS */
+  --bg-body: #121212;
+  --bg-surface: #1E1E1E;
+  --bg-surface-elevated: #2A2A2A;
+
+  /* CORES PRINCIPAIS */
+  --primary: #00D5A5;
+  --primary-hover: #00BFA0;
+  --primary-soft: rgba(0, 213, 165, 0.2);
+
+  /* ALERTAS */
+  --danger: #E07A5F;
+  --danger-hover: #C75B39;
+
+  /* BORDAS */
+  --border-soft: #3A3A3A;
+  --border-strong: #666666;
+
+  /* TEXTOS */
+  --text-main: #EAEAEA;
+  --text-muted: #AAAAAA;
+}
+
 /* === BASE GLOBAL === */
 * {
   box-sizing: border-box;
@@ -111,16 +136,16 @@ body {
 .form-row label {
   font-size: var(--fs-sm);
   color: var(--text-muted);
-  margin-left: 0.5rem; /* Alinhado com o início do arredondamento */
+  margin-left: 0.5rem;
 }
 
 /* === INPUTS / TEXTAREA / SELECT (ARREDONDADOS) === */
 .form-row input,
 .select-wrapper select {
-  padding: 0.6rem 1.2rem; /* Mais padding lateral para a curva */
+  padding: 0.6rem 1.2rem;
   height: 44px;
-  border-radius: 999px; /* Efeito Pílula */
-  background: #FFFFFF;
+  border-radius: 999px;
+  background: var(--bg-body);
   border: 1px solid var(--border-soft);
   color: var(--text-main);
   font-size: var(--fs-md);
@@ -129,8 +154,8 @@ body {
 
 .form-row textarea {
   padding: 0.8rem 1rem;
-  border-radius: 1rem; /* Arredondamento suave (pílula não funciona bem em multi-linha) */
-  background: #FFFFFF;
+  border-radius: 1rem;
+  background: var(--bg-body);
   border: 1px solid var(--border-soft);
   color: var(--text-main);
   font-size: var(--fs-md);
@@ -157,7 +182,7 @@ textarea:focus,
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  padding-right: 2.5rem; /* Espaço para a seta */
+  padding-right: 2.5rem;
   cursor: pointer;
   width: 100%;
 }
@@ -167,7 +192,7 @@ textarea:focus,
   position: absolute;
   pointer-events: none;
   top: 50%;
-  right: 15px; /* Seta mais para dentro devido ao arredondamento */
+  right: 15px;
   transform: translateY(-50%);
   width: 12px;
   height: 12px;
@@ -205,7 +230,7 @@ button {
   padding: 0.7rem 1.5rem;
   border-radius: 999px;
   background: var(--primary);
-  color: #FFFFFF;;
+  color: #FFFFFF;
   font-weight: 600;
 }
 
@@ -215,7 +240,7 @@ button {
 
 .btn-secondary {
   padding: 0.45rem 1rem;
-  border-radius: 999px; /* Também arredondado para consistência */
+  border-radius: 999px;
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-soft);
   color: var(--text-main);
@@ -223,7 +248,7 @@ button {
 
 .btn-danger {
   padding: 0.45rem 1rem;
-  border-radius: 999px; /* Também arredondado */
+  border-radius: 999px;
   background: var(--danger);
   color: #FFFFFF;
 }
@@ -308,11 +333,74 @@ button {
 }
 
 .user-pill {
-  display: flex;
+  display: flex;  
   align-items: center;
   gap: 0.5rem;
 }
 
 .user-area .btn-secondary {
   margin-left: auto;
+}
+
+/* === DARK MODE ESPECÍFICO === */
+.app-container.dark {
+  background: var(--bg-body);
+  color: var(--text-main);
+}
+
+.app-container.dark .card {
+  background: var(--bg-surface);
+  border-color: var(--border-soft);
+  color: var(--text-main);
+}
+
+.app-container.dark .btn-secondary {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-soft);
+  color: var(--text-main);
+}
+
+.app-container.dark .btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.app-container.dark .btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.app-container.dark .btn-danger {
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
+.app-container.dark .task-item {
+  background: var(--bg-surface);
+  border-color: var(--border-soft);
+  color: var(--text-main);
+}
+
+.app-container.dark .task-item.concluida h3 {
+  color: var(--text-muted);
+}
+
+.app-container.dark .task-desc,
+.app-container.dark .dash-label,
+.app-container.dark .app-header p {
+  color: var(--text-muted);
+}
+
+.app-container.dark .form-row input,
+.app-container.dark .form-row textarea,
+.app-container.dark .select-wrapper select {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-soft);
+  color: var(--text-main);
+}
+
+.app-container.dark .form-row input:focus,
+.app-container.dark .form-row textarea:focus,
+.app-container.dark .select-wrapper select:focus {
+  box-shadow: 0 0 0 2px var(--primary-soft);
+  border-color: var(--primary);
 }
