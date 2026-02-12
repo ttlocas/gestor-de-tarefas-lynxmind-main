@@ -103,7 +103,6 @@ export default function TaskForm({ onAddTask, projects }) {
                 document.getElementById("dateInput").showPicker?.()
               }
             >
-              📅
             </button>
           </div>
         </div>

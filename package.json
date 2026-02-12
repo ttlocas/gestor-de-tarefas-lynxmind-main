@@ -21,6 +21,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@ljharb/tsconfig": "^0.3.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.23",
